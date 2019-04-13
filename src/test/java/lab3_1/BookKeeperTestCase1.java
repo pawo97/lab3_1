@@ -159,4 +159,22 @@ public class BookKeeperTestCase1 {
                           .size(),
                 Matchers.is(2));
     }
+
+    @Test
+    public void isCallCalculateTaxOnceWithInvoiceWithOnePosition() {
+        productData = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
+                ProductType.STANDARD, new Date());
+        invoiceRequest = new InvoiceRequest(clientData);
+        int quantity = 11;
+        Money totalCost = new Money(new BigDecimal(100), Currency.getInstance("PLN"));
+        RequestItem item1 = new RequestItem(productData, quantity, totalCost);
+        invoiceRequest.add(item1);
+
+        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
+                new Tax(new Money(new BigDecimal(102), Currency.getInstance("PLN")), "Podatek"));
+
+        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+
+        verify(taxPolicy, times(1)).calculateTax(any(), any());
+    }
 }
