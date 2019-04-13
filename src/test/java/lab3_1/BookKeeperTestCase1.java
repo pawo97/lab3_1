@@ -57,7 +57,7 @@ public class BookKeeperTestCase1 {
         invoiceRequest.add(item);
 
         when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(100), Currency.getInstance("PLN")), "Podatek"));
+                new Tax(new Money(new BigDecimal(130), Currency.getInstance("PLN")), "Podatek"));
 
         Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
@@ -91,7 +91,7 @@ public class BookKeeperTestCase1 {
         invoiceRequest.add(item);
 
         when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(100), Currency.getInstance("PLN")), "Podatek"));
+                new Tax(new Money(new BigDecimal(103), Currency.getInstance("PLN")), "Podatek"));
 
         Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
@@ -101,13 +101,24 @@ public class BookKeeperTestCase1 {
     @Test
     public void isReturnedEmptyInvoice() {
         when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(100), Currency.getInstance("PLN")), "Podatek"));
+                new Tax(new Money(new BigDecimal(104), Currency.getInstance("PLN")), "Podatek"));
 
         Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
         assertThat(invoice.getItems()
                           .size(),
                 Matchers.is(0));
+
+    }
+
+    @Test
+    public void isNotCalculateTaxForEmptyInvoice() {
+        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
+                new Tax(new Money(new BigDecimal(102), Currency.getInstance("PLN")), "Podatek"));
+
+        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+
+        verify(taxPolicy, times(0)).calculateTax(any(), any());
 
     }
 }
