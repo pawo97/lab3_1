@@ -1,7 +1,10 @@
 package lab3_1;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +60,7 @@ public class ProductCommandHandlerTest1 {
         product = new Product(Id.generate(), new Money(new BigDecimal(164)), "no_name", ProductType.DRUG);
         clientData = new ClientData(Id.generate(), "Kowalski");
         reservation = new Reservation(Id.generate(), ReservationStatus.OPENED, clientData, new Date());
+        suggestionService = mock(SuggestionService.class);
     }
 
     @Test
@@ -67,4 +71,14 @@ public class ProductCommandHandlerTest1 {
         verify(reservationRepository, times(1)).save(any(Reservation.class));
     }
 
+    @Test
+    public void isCallEqualsIfProductIsAvailable() {
+        when(reservationRepository.load(addProductCommand.getOrderId())).thenReturn(reservation);
+        when(productRepository.load(addProductCommand.getProductId())).thenReturn(product);
+
+        addProductCommandHandler.handle(addProductCommand);
+
+        assertThat(product.isAvailable(), is(true));
+        verify(suggestionService, never()).suggestEquivalent(any(Product.class), any(Client.class));
+    }
 }
