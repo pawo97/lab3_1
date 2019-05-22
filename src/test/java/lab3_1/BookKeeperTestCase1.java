@@ -33,9 +33,16 @@ public class BookKeeperTestCase1 {
     public Id id;
     public BookKeeper bookKeeper;
     public ClientData clientData;
-    public ProductData productData;
+    public ProductData productData1;
+    public ProductData productData2;
     public InvoiceRequest invoiceRequest;
     public TaxPolicy taxPolicy;
+    public Invoice invoice;
+    public Money totalCost;
+    public int quantity1;
+    public int quantity2;
+    public RequestItem item1;
+    public RequestItem item2;
 
     @Before
     public void setUp() {
@@ -44,27 +51,27 @@ public class BookKeeperTestCase1 {
         clientData = new ClientData(id, "Kowalski");
         invoiceRequest = new InvoiceRequest(clientData);
         taxPolicy = mock(TaxPolicy.class);
-        productData = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product",
+        productData1 = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product",
                 ProductType.STANDARD, new Date());
+        productData2 = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
+                ProductType.DRUG, new Date());
+        totalCost = new Money(new BigDecimal(150), Currency.getInstance("PLN"));
+        item1 = new RequestItem(productData1, quantity1, totalCost);
+        item2 = new RequestItem(productData2, quantity2, totalCost);
+        quantity1 = 10;
+        quantity2 = 15;
+        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
+                new Tax(new Money(new BigDecimal(150), Currency.getInstance("PLN")), "Podatek"));
     }
 
     @Test
     public void isReturnedInvoiceWithOnePosition() {
-        invoiceRequest = new InvoiceRequest(clientData);
-        int quantity = 10;
-        Money totalCost = new Money(new BigDecimal(100), Currency.getInstance("PLN"));
-        RequestItem item = new RequestItem(productData, quantity, totalCost);
-        invoiceRequest.add(item);
-
-        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(130), Currency.getInstance("PLN")), "Podatek"));
-
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
-
+        invoiceRequest.add(item1);
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
         assertThat(invoice.getItems()
                           .get(0)
                           .getProduct(),
-                Matchers.is(productData));
+                Matchers.is(productData1));
 
         assertThat(invoice.getItems()
                           .size(),
@@ -73,27 +80,11 @@ public class BookKeeperTestCase1 {
 
     @Test
     public void isCallCalculateTaxTwiceWithInvoiceWithTwoPositions() {
-
-        productData = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
-                ProductType.STANDARD, new Date());
         invoiceRequest = new InvoiceRequest(clientData);
-        int quantity = 10;
-        Money totalCost = new Money(new BigDecimal(100), Currency.getInstance("PLN"));
-        RequestItem item1 = new RequestItem(productData, quantity, totalCost);
         invoiceRequest.add(item1);
-
-        productData = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1", ProductType.DRUG,
-                new Date());
-
-        quantity = 15;
-        totalCost = new Money(new BigDecimal(150), Currency.getInstance("PLN"));
-        RequestItem item2 = new RequestItem(productData, quantity, totalCost);
         invoiceRequest.add(item2);
 
-        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(103), Currency.getInstance("PLN")), "Podatek"));
-
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
         verify(taxPolicy, times(2)).calculateTax(any(), any());
     }
@@ -101,49 +92,27 @@ public class BookKeeperTestCase1 {
     @Test
     public void isReturnedEmptyInvoice() {
         when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(104), Currency.getInstance("PLN")), "Podatek"));
+                new Tax(new Money(new BigDecimal(150), Currency.getInstance("PLN")), "Podatek"));
 
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
         assertThat(invoice.getItems()
                           .size(),
                 Matchers.is(0));
-
     }
 
     @Test
     public void isNotCalculateTaxForEmptyInvoice() {
-        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(102), Currency.getInstance("PLN")), "Podatek"));
-
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
-
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
         verify(taxPolicy, times(0)).calculateTax(any(), any());
-
     }
 
     @Test
     public void isReturnedInvoiceWithTwoPositions() {
-        ProductData productData1 = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
-                ProductType.STANDARD, new Date());
         invoiceRequest = new InvoiceRequest(clientData);
-        int quantity = 12;
-        Money totalCost = new Money(new BigDecimal(100), Currency.getInstance("PLN"));
-        RequestItem item = new RequestItem(productData1, quantity, totalCost);
-        invoiceRequest.add(item);
-
-        ProductData productData2 = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
-                ProductType.DRUG, new Date());
-
-        quantity = 13;
-        totalCost = new Money(new BigDecimal(150), Currency.getInstance("PLN"));
-        item = new RequestItem(productData2, quantity, totalCost);
-        invoiceRequest.add(item);
-
-        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(103), Currency.getInstance("PLN")), "Podatek"));
-
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        invoiceRequest.add(item1);
+        invoiceRequest.add(item2);
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
         assertThat(invoice.getItems()
                           .get(0)
@@ -162,18 +131,9 @@ public class BookKeeperTestCase1 {
 
     @Test
     public void isCallCalculateTaxOnceWithInvoiceWithOnePosition() {
-        productData = new ProductData(id, new Money(new BigDecimal(100), Currency.getInstance("PLN")), "name of Product1",
-                ProductType.STANDARD, new Date());
         invoiceRequest = new InvoiceRequest(clientData);
-        int quantity = 11;
-        Money totalCost = new Money(new BigDecimal(100), Currency.getInstance("PLN"));
-        RequestItem item1 = new RequestItem(productData, quantity, totalCost);
         invoiceRequest.add(item1);
-
-        when(taxPolicy.calculateTax(any(ProductType.class), any(Money.class))).thenReturn(
-                new Tax(new Money(new BigDecimal(102), Currency.getInstance("PLN")), "Podatek"));
-
-        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
 
         verify(taxPolicy, times(1)).calculateTax(any(), any());
     }
